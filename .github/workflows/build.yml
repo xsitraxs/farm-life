@@ -16,38 +16,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
       - name: Build mod
-        id: gradle
-        run: |
-          ./gradlew build --stacktrace --info 2>&1 | tee gradle-build.log
-          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
-          cat gradle-build.log
-          echo "--- EXIT CODE ${PIPESTATUS[0]} ---"
-      - name: Annotate failure with log
-        if: always()
-        run: |
-          if [ "${{ steps.gradle.outputs.exit_code }}" != "0" ]; then
-            echo "Gradle failed with ${{ steps.gradle.outputs.exit_code }}"
-            # Emit each of last 100 lines as error annotation (truncated)
-            tail -n 100 gradle-build.log | head -n 20 | while IFS= read -r line; do
-              # Escape % and newlines for GH annotation
-              esc=$(echo "$line" | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')
-              echo "::error::$esc"
-            done
-            # Also emit full tail as notice
-            echo "::notice::$(tail -n 200 gradle-build.log | tr '\n' ' ' | cut -c1-1000)"
-            exit 1
-          fi
+        run: ./gradlew build --stacktrace
       - name: Upload mod jar
-        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: farm-life-mod
           path: build/libs/*.jar
-          if-no-files-found: warn
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-log
-          path: gradle-build.log
-          if-no-files-found: warn
