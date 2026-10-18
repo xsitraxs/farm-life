@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "farm_life",
+  "version": "${version}",
+  "name": "Farm Life",
+  "description": "A farming simulator with crop sales, seed shopping, coins, levels, and quests.",
+  "authors": [
+    "Farm Life contributors"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "ru.farmlife.FarmLifeMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
