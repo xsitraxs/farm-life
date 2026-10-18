@@ -39,8 +39,8 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 25
-    options.encoding = 'UTF-8'
+    it.options.encoding = "UTF-8"
+    it.options.release = 25
 }
 
 java {
@@ -50,6 +50,7 @@ java {
 }
 
 jar {
+    inputs.property "archivesName", project.archives_base_name
     from("LICENSE") {
         rename { "${it}_${project.archives_base_name}" }
     }
