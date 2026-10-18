@@ -16,9 +16,33 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
       - name: Build mod
-        run: ./gradlew build --stacktrace
+        id: build
+        run: |
+          set -o pipefail
+          ./gradlew build --stacktrace --info 2>&1 | tee gradle-build.log
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+      - name: Check build result
+        run: |
+          cat gradle-build.log || true
+          if [ "${{ steps.build.outputs.exit_code }}" != "0" ]; then
+            echo "::error::Gradle build failed with exit code ${{ steps.build.outputs.exit_code }}"
+            echo "=== BUILD LOG TAIL ==="
+            tail -n 200 gradle-build.log || true
+            exit 1
+          fi
       - name: Upload mod jar
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: farm-life-mod
           path: build/libs/*.jar
+          if-no-files-found: warn
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-log
+          path: gradle-build.log
+          if-no-files-found: warn
+
