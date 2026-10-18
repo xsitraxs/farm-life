@@ -16,9 +16,25 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
       - name: Build mod
+        id: gradle
         run: |
           set -o pipefail
           ./gradlew build --stacktrace --info 2>&1 | tee gradle-build.log
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+      - name: Show log excerpt on failure
+        if: always()
+        run: |
+          echo "=== gradle-build.log head ==="
+          head -n 200 gradle-build.log || true
+          echo "=== tail ==="
+          tail -n 400 gradle-build.log || true
+          if [ "${{ steps.gradle.outputs.exit_code }}" != "0" ]; then
+            echo "::error::Gradle build failed, see log tail above"
+            # Create inline annotation with log excerpt (first 10 lines of error)
+            ERR=$(grep -A2 -i "error" gradle-build.log | head -n 20 | tr '\n' ' ' | cut -c1-800)
+            echo "::error::${ERR}"
+            exit 1
+          fi
       - name: Upload mod jar
         if: always()
         uses: actions/upload-artifact@v7
@@ -33,25 +49,3 @@ jobs:
           name: build-log
           path: gradle-build.log
           if-no-files-found: warn
-      - name: Publish log to gist for debugging (always)
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Creating gist with build log..."
-          gh gist create --public --desc "farm-life build log ${{ github.run_id }}" gradle-build.log || echo "gist failed"
-          echo "=== LOG TAIL ==="
-          tail -n 300 gradle-build.log || true
-      - name: Push log to repo
-        if: always()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Create log branch
-          LOG_CONTENT=$(tail -n 400 gradle-build.log | base64 -w 0)
-          echo "$LOG_CONTENT" | base64 -d > /tmp/logtail.txt
-          cat /tmp/logtail.txt
-          # Push log as file via API using gh
-          gh api repos/${{ github.repository }}/contents/debug-log.txt --method PUT --field message="ci: upload debug log" --field content="$LOG_CONTENT" --field branch="debug-log" --field sha="$(gh api repos/${{ github.repository }}/contents/debug-log.txt --jq .sha 2>/dev/null || echo "")" || echo "push log via API failed, trying direct"
-          echo "done"
-
